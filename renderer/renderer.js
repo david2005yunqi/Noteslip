@@ -829,6 +829,12 @@ function aboutHtml() {
   <div class="hint">版本：${escapeHtml(APP_VERSION)}</div>
 </div>
 <div class="field">
+  <div class="label">开源库</div>
+  <div class="hint"><a href="https://www.electronjs.org/" target="_blank" rel="noreferrer">Electron</a></div>
+  <div class="hint"><a href="https://www.electron.build/" target="_blank" rel="noreferrer">electron-builder</a></div>
+  <div class="hint"><a href="https://www.npmjs.com/package/universalify" target="_blank" rel="noreferrer">universalify</a></div>
+</div>
+<div class="field">
   <div class="label">GitHub 仓库</div>
   <div class="hint"><a href="https://github.com/david2005yunqi/Noteslip" target="_blank" rel="noreferrer">https://github.com/david2005yunqi/Noteslip</a></div>
 </div>
