@@ -21,7 +21,12 @@
           <button id="openBtn" type="button">打开</button>
         </div>
 
-        <div class="listHeader">已有日志</div>
+        <div class="searchRow">
+          <input id="searchInput" type="search" placeholder="搜索…" />
+          <button id="clearSearchBtn" type="button">清除</button>
+        </div>
+
+        <div id="listHeader" class="listHeader">已有日志</div>
         <div id="logList" class="logList"></div>
       </aside>
 
@@ -30,10 +35,97 @@
           <div class="current">
             <span id="currentDate" class="currentDate"></span>
           </div>
-          <div id="status" class="status"></div>
+          <div class="toolbar">
+            <button id="previewBtn" type="button" title="切换预览/编辑">预览</button>
+            <div id="status" class="status toolbarStatus"></div>
+          </div>
         </div>
-        <textarea id="content" class="content" spellcheck="false" placeholder="开始记录今天的内容…"></textarea>
+        <div id="editorBody" class="editorBody">
+          <textarea id="content" class="content" spellcheck="false" placeholder="开始记录今天的内容…"></textarea>
+          <div id="preview" class="preview hidden"></div>
+        </div>
       </main>
+    </div>
+
+    <div id="modalBackdrop" class="modalBackdrop hidden">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modalHeader">
+          <div id="settingsTitle" class="modalTitle">设置</div>
+          <button id="closeSettingsBtn" type="button">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="field">
+            <div class="label">存储目录</div>
+            <div class="row">
+              <input id="storageDirInput" type="text" placeholder="默认：应用数据目录/daily-logs" />
+              <button id="chooseStorageDirBtn" type="button">选择</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">备份目录</div>
+            <div class="row">
+              <input id="backupDirInput" type="text" placeholder="用于“一键备份”保存位置" />
+              <button id="chooseBackupDirBtn" type="button">选择</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">每日模板</div>
+            <textarea id="templateInput" class="templateInput" spellcheck="false"></textarea>
+            <div class="hint">首次打开某一天且文件不存在时，会用模板生成初始内容；{{date}} 会替换为日期</div>
+          </div>
+        </div>
+        <div class="modalFooter">
+          <button id="saveSettingsBtn" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="infoBackdrop" class="modalBackdrop hidden">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+        <div class="modalHeader">
+          <div id="infoTitle" class="modalTitle"></div>
+          <button id="closeInfoBtn" type="button">关闭</button>
+        </div>
+        <div id="infoBody" class="modalBody"></div>
+      </div>
+    </div>
+
+    <div id="exportBackdrop" class="modalBackdrop hidden">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+        <div class="modalHeader">
+          <div id="exportTitle" class="modalTitle">导出</div>
+          <button id="closeExportBtn" type="button">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="field">
+            <div class="label">导出范围</div>
+            <div class="radioGroup">
+              <label class="radioRow">
+                <input id="exportKindCurrent" type="radio" name="exportKind" value="current" checked />
+                当前日期：<span id="exportCurrentDate"></span>
+              </label>
+              <label class="radioRow">
+                <input id="exportKindRange" type="radio" name="exportKind" value="range" />
+                日期范围
+              </label>
+              <div id="exportRangeRow" class="exportRangeRow hidden">
+                <input id="exportFrom" type="date" />
+                <input id="exportTo" type="date" />
+              </div>
+              <label class="radioRow">
+                <input id="exportKindAll" type="radio" name="exportKind" value="all" />
+                全部日志
+              </label>
+            </div>
+            <div class="hint">会生成一个合并后的文件（.md / .txt），并弹出保存位置对话框</div>
+          </div>
+          <div id="exportError" class="errorText hidden"></div>
+        </div>
+        <div class="modalFooter modalFooterSplit">
+          <button id="cancelExportBtn" type="button">取消</button>
+          <button id="doExportBtn" type="button">导出</button>
+        </div>
+      </div>
     </div>
 
     <script src="./renderer.js"></script>

@@ -4,10 +4,26 @@
   "description": "Daily log app built with Electron",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "devDependencies": {
     "electron": "^30.0.0",
+    "electron-builder": "^26.0.0",
     "universalify": "^2.0.1"
+  },
+  "build": {
+    "appId": "com.noteslip.app",
+    "productName": "Noteslip",
+    "files": [
+      "**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }
