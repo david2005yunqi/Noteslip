@@ -1,15 +1,173 @@
 # Noteslip
 
-Daily log app built with Electron
+Daily log app built with Electron.
 
-> 还是electron好，java写的头大了
+## Quick Navigation
 
----
+- [English](#english)
+  - [Features](#features)
+  - [Development](#development)
+  - [Build (Windows)](#build-windows)
+  - [Usage](#usage)
+  - [Data & Settings](#data--settings)
+  - [Feedback](#feedback)
+  - [License](#license)
+- [中文](#zh)
+  - [简介](#简介)
+  - [功能](#功能)
+  - [开发](#开发)
+  - [打包（Windows）](#打包windows)
+  - [使用](#使用-1)
+  - [数据与设置](#数据与设置)
+  - [反馈](#反馈-1)
+  - [许可证](#许可证)
 
+<a id="english"></a>
+
+## English
+
+## Features
+
+- One log per day: manage entries by date (YYYY-MM-DD)
+- Markdown editor with preview toggle
+- Auto-save (debounced). Ctrl+S / Cmd+S for manual save
+- Full-text search: line-based matches with click-to-jump
+- Export: current day / date range / all logs into a single file (.md / .txt)
+- Backup: copy all .md logs into a chosen backup folder
+- Settings: storage dir, backup dir, daily template (supports {{date}} placeholder)
+
+## Development
+
+```bash
 npm install
+npm start
+```
 
+## Build (Windows)
+
+```bash
 npm run dist
+```
 
-dist\：
-    - dist\Noteslip Setup <version>.exe
-    - dist\win-unpacked\
+Artifacts under dist\:
+
+- dist\Noteslip Setup <version>.exe
+- dist\win-unpacked\
+
+Build unpacked directory only:
+
+```bash
+npm run pack
+```
+
+## Usage
+
+- Today: open today's log
+- Date: pick a date then click Open, or press Enter in the date field
+- Preview: toggle Preview/Edit on the top-right
+- Search: type keywords on the left; click a result to jump and select the hit
+- Menu:
+  - File → Export… (current / range / all)
+  - File → Open logs folder
+  - File → Backup now…
+  - File → Settings…
+
+## Data & Settings
+
+- Log format: one Markdown file per day, named YYYY-MM-DD.md
+- Default logs directory: <userData>\daily-logs
+- Settings file: <userData>\settings.json
+- Template: when opening a day for the first time (file not exists), the template is used to generate initial content; {{date}} will be replaced by the date
+
+<userData> is Electron's user data directory (examples; actual path depends on your OS/user):
+
+- Windows: C:\Users\<User>\AppData\Roaming\Noteslip
+- macOS: ~/Library/Application Support/Noteslip
+- Linux: ~/.config/Noteslip
+
+## Feedback
+
+- Issues: https://github.com/david2005yunqi/Noteslip/issues
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+- See [LICENSE](/LICENSE) for the full text.
+
+<a id="zh"></a>
+
+## 中文
+
+## 简介
+
+Noteslip 是一个基于 Electron 的每日日志（Markdown）桌面应用（最初有 Java 版本，后来切换到 Electron）。
+
+## 功能
+
+- 每天一篇：按日期（YYYY-MM-DD）管理日志文件
+- Markdown 编辑 + 预览切换
+- 自动保存（输入后短暂延迟自动保存），支持 Ctrl+S / Cmd+S 强制保存
+- 全文搜索：按行匹配并可点击跳转定位
+- 导出：支持导出当前日期 / 日期范围 / 全部日志为单个文件（.md / .txt）
+- 备份：一键把所有 .md 日志复制到备份目录
+- 设置：自定义存储目录、备份目录、每日模板（支持 {{date}} 占位符）
+
+## 开发
+
+```bash
+npm install
+npm start
+```
+
+## 打包（Windows）
+
+```bash
+npm run dist
+```
+
+产物在 dist\ 目录下：
+
+- dist\Noteslip Setup <version>.exe
+- dist\win-unpacked\
+
+如需仅生成未打包目录：
+
+```bash
+npm run pack
+```
+
+## 使用
+
+- 今天：打开当天日志
+- 日期：选择日期后点“打开”，或在日期框按回车
+- 预览：右上角“预览/编辑”切换
+- 搜索：左侧输入关键词，点击结果可跳转并选中命中位置
+- 菜单：
+  - 文件 → 导出…（当前/范围/全部）
+  - 文件 → 打开日志目录
+  - 文件 → 立即备份…
+  - 文件 → 设置…
+
+## 数据与设置
+
+- 日志格式：每一天一个 Markdown 文件，文件名为 YYYY-MM-DD.md
+- 默认日志目录：<userData>\daily-logs
+- 设置文件：<userData>\settings.json
+- 模板规则：首次打开某一天且文件不存在时，会用模板生成初始内容；{{date}} 会替换为日期
+
+<userData> 是 Electron 的用户数据目录（示例路径，具体以系统实际为准）：
+
+- Windows：C:\Users\<用户名>\AppData\Roaming\Noteslip
+- macOS：~/Library/Application Support/Noteslip
+- Linux：~/.config/Noteslip
+
+## 反馈
+
+- Issues：https://github.com/david2005yunqi/Noteslip/issues
+
+## 许可证
+
+本项目采用 GNU General Public License v3.0（GPL-3.0）开源。
+
+- 完整条款请查看 [LICENSE](/LICENSE)。
