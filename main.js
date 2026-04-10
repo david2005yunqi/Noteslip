@@ -424,7 +424,7 @@ app.whenReady().then(() => {
           click: () => dispatchMenuAction("help")
         },
         {
-          label: "了解更多",
+          label: "关于软件",
           click: () => dispatchMenuAction("learnMore")
         }
       ]

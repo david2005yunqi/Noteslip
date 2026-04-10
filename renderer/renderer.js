@@ -1,4 +1,125 @@
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const APP_VERSION = "26.0.1.0";
+const MARKDOWN_CHEAT_SHEET = `# Markdown Cheat Sheet
+
+Thanks for visiting [The Markdown Guide](https://www.markdownguide.org)!        
+
+This Markdown cheat sheet provides a quick overview of all the Markdown syntax elements. It can’t cover every edge case, so if you need more information about any of these elements, refer to the reference guides for [basic syntax](https://www.markdownguide.org/basic-syntax/) and [extended syntax](https://www.markdownguide.org/extended-syntax/).
+
+## Basic Syntax
+
+These are the elements outlined in John Gruber’s original design document. All Markdown applications support these elements.
+
+### Heading
+
+# H1
+## H2
+### H3
+
+### Bold
+
+**bold text**
+
+### Italic
+
+*italicized text*
+
+### Blockquote
+
+> blockquote
+
+### Ordered List
+
+1. First item
+2. Second item
+3. Third item
+
+### Unordered List
+
+- First item
+- Second item
+- Third item
+
+### Code
+
+\`code\`
+
+### Horizontal Rule
+
+---
+
+### Link
+
+[Markdown Guide](https://www.markdownguide.org)
+
+### Image
+
+![alt text](https://www.markdownguide.org/assets/images/tux.png)
+
+## Extended Syntax
+
+These elements extend the basic syntax by adding additional features. Not all Markdown applications support these elements.
+
+### Table
+
+| Syntax | Description |
+| ----------- | ----------- |
+| Header | Title |
+| Paragraph | Text |
+
+### Fenced Code Block
+
+\`\`\`
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "age": 25
+}
+\`\`\`
+
+### Footnote
+
+Here's a sentence with a footnote. [^1]
+
+[^1]: This is the footnote.
+
+### Heading ID
+
+### My Great Heading {#custom-id}
+
+### Definition List
+
+term
+: definition
+
+### Strikethrough
+
+~~The world is flat.~~
+
+### Task List
+
+- [x] Write the press release
+- [ ] Update the website
+- [ ] Contact the media
+
+### Emoji
+
+That is so funny! :joy:
+
+(See also [Copying and Pasting Emoji](https://www.markdownguide.org/extended-syntax/#copying-and-pasting-emoji))
+
+### Highlight
+
+I need to highlight these ==very important words==.
+
+### Subscript
+
+H~2~O
+
+### Superscript
+
+X^2^
+`;
 
 function isValidDate(date) {
   return typeof date === "string" && DATE_RE.test(date);
@@ -168,7 +289,7 @@ function safeMarkdownToHtml(md) {
       continue;
     }
 
-    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
     if (h) {
       const level = h[1].length;
       out.push(`<h${level}>${renderInline(h[2] || "")}</h${level}>`);
@@ -176,11 +297,11 @@ function safeMarkdownToHtml(md) {
       continue;
     }
 
-    const li = line.match(/^\s*-\s+(.*)$/);
+    const li = line.match(/^\s*[-*]\s+(.*)$/);
     if (li) {
       const items = [];
       while (i < lines.length) {
-        const m = String(lines[i] ?? "").match(/^\s*-\s+(.*)$/);
+        const m = String(lines[i] ?? "").match(/^\s*[-*]\s+(.*)$/);
         if (!m) break;
         items.push(`<li>${renderInline(m[1] || "")}</li>`);
         i++;
@@ -487,7 +608,7 @@ function wireEvents() {
     window.noteslip.onMenuAction((action) => {
       const a = String(action || "");
       if (a === "help") openInfo("帮助", helpHtml());
-      else if (a === "learnMore") openInfo("了解更多", learnMoreHtml());
+      else if (a === "learnMore") openInfo("关于软件", aboutHtml());
       else if (a === "export") openExport();
       else if (a === "settings") openSettings().catch(() => setStatus("打开设置失败"));
     });
@@ -693,23 +814,31 @@ function helpHtml() {
   <div class="label">导出</div>
   <div class="hint">菜单栏“文件 → 导出…”；支持导出当前/范围/全部</div>
 </div>
+<div class="field">
+  <div class="label">Markdown 速查表</div>
+  <div class="hint">来源：<a href="https://www.markdownguide.org/" target="_blank" rel="noreferrer">The Markdown Guide</a></div>
+  <pre>${escapeHtml(MARKDOWN_CHEAT_SHEET)}</pre>
+</div>
 `;
 }
 
-function learnMoreHtml() {
+function aboutHtml() {
   return `
 <div class="field">
-  <div class="label">模板</div>
-  <div class="hint">首次打开某天且文件不存在时，会用“每日模板”生成初始内容；支持 {{date}} 占位符</div>
+  <div class="label">Noteslip</div>
+  <div class="hint">版本：${escapeHtml(APP_VERSION)}</div>
 </div>
 <div class="field">
-  <div class="label">存储目录</div>
-  <div class="hint">默认存储在应用数据目录下；在“设置”里可切换目录，并可把旧日志复制过去（不覆盖已有同名文件）</div>
+  <div class="label">GitHub 仓库</div>
+  <div class="hint"><a href="https://github.com/david2005yunqi/Noteslip" target="_blank" rel="noreferrer">https://github.com/david2005yunqi/Noteslip</a></div>
 </div>
 <div class="field">
-  <div class="label">导出与备份</div>
-  <div class="hint">导出：生成一个合并后的 .md/.txt 文件</div>
-  <div class="hint">备份：在备份目录中生成带时间戳的文件夹副本</div>
+  <div class="label">反馈与建议</div>
+  <div class="hint"><a href="https://github.com/david2005yunqi/Noteslip/issues" target="_blank" rel="noreferrer">https://github.com/david2005yunqi/Noteslip/issues</a></div>
+</div>
+<div class="field">
+  <div class="label">License</div>
+  <div class="hint">GNU General Public License v3.0 (GPL-3.0)</div>
 </div>
 `;
 }

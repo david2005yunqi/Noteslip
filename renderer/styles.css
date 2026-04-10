@@ -247,6 +247,19 @@ input[type="date"] {
   color: #175cd3;
 }
 
+#infoBody pre {
+  padding: 12px;
+  border-radius: 10px;
+  background: #0b1220;
+  color: #e6edf3;
+  overflow: auto;
+  margin: 8px 0 0;
+}
+
+#infoBody code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .hidden {
   display: none !important;
 }

@@ -2,9 +2,18 @@
 node_modules/
 dist/
 out/
+releases/
+
+*.exe
+*.msi
+*.blockmap
+latest*.yml
+
 npm-debug.log*
 yarn-error.log*
 .DS_Store
+Thumbs.db
+Desktop.ini
 
 # Java build artifacts (legacy)
 target/
