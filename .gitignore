@@ -1,0 +1,18 @@
+# Node / Electron
+node_modules/
+dist/
+out/
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Java build artifacts (legacy)
+target/
+installer/
+jpackage-input/
+*.msi
+*.jar
+
+# Misc
+.env
+*.log

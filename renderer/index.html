@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Noteslip</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="sidebarHeader">
+          <div class="title">每日日志</div>
+          <div class="actions">
+            <button id="todayBtn" type="button">今天</button>
+          </div>
+        </div>
+
+        <div class="datePickerRow">
+          <input id="datePicker" type="date" />
+          <button id="openBtn" type="button">打开</button>
+        </div>
+
+        <div class="listHeader">已有日志</div>
+        <div id="logList" class="logList"></div>
+      </aside>
+
+      <main class="editor">
+        <div class="editorHeader">
+          <div class="current">
+            <span id="currentDate" class="currentDate"></span>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <textarea id="content" class="content" spellcheck="false" placeholder="开始记录今天的内容…"></textarea>
+      </main>
+    </div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
