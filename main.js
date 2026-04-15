@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
+﻿const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 
@@ -11,7 +11,11 @@ const DEFAULT_SETTINGS = {
 - 
 `,
   storageDir: "",
-  backupDir: ""
+  backupDir: "",
+  themeMode: "auto",
+  autoDarkStart: "19:00",
+  autoDarkEnd: "07:00",
+  icsFeeds: ""
 };
 
 let settingsCache = null;
@@ -45,11 +49,7 @@ async function loadSettings() {
   try {
     const raw = await fs.readFile(getSettingsPath(), "utf8");
     const parsed = JSON.parse(raw);
-    const merged = { ...DEFAULT_SETTINGS, ...(parsed || {}) };
-    merged.template = String(merged.template ?? DEFAULT_SETTINGS.template);
-    merged.storageDir = String(merged.storageDir ?? "");
-    merged.backupDir = String(merged.backupDir ?? "");
-    return merged;
+    return normalizeSettings(parsed);
   } catch (e) {
     if (e && e.code === "ENOENT") return { ...DEFAULT_SETTINGS };
     return { ...DEFAULT_SETTINGS };
@@ -62,12 +62,29 @@ async function getSettings() {
 }
 
 async function saveSettings(next) {
-  const merged = { ...DEFAULT_SETTINGS, ...(next || {}) };
+  const merged = normalizeSettings(next);
+  settingsCache = merged;
+  await fs.writeFile(getSettingsPath(), JSON.stringify(merged, null, 2), "utf8");
+  return merged;
+}
+
+function isValidThemeMode(v) {
+  return v === "light" || v === "dark" || v === "auto";
+}
+
+function isValidTimeHHMM(v) {
+  return typeof v === "string" && /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
+}
+
+function normalizeSettings(input) {
+  const merged = { ...DEFAULT_SETTINGS, ...(input || {}) };
   merged.template = String(merged.template ?? DEFAULT_SETTINGS.template);
   merged.storageDir = String(merged.storageDir ?? "");
   merged.backupDir = String(merged.backupDir ?? "");
-  settingsCache = merged;
-  await fs.writeFile(getSettingsPath(), JSON.stringify(merged, null, 2), "utf8");
+  merged.themeMode = isValidThemeMode(merged.themeMode) ? merged.themeMode : DEFAULT_SETTINGS.themeMode;
+  merged.autoDarkStart = isValidTimeHHMM(merged.autoDarkStart) ? merged.autoDarkStart : DEFAULT_SETTINGS.autoDarkStart;
+  merged.autoDarkEnd = isValidTimeHHMM(merged.autoDarkEnd) ? merged.autoDarkEnd : DEFAULT_SETTINGS.autoDarkEnd;
+  merged.icsFeeds = String(merged.icsFeeds ?? "");
   return merged;
 }
 
@@ -261,6 +278,209 @@ async function exportLogs(payload) {
   return { ok: true, canceled: false, filePath };
 }
 
+function normalizeIcsUrl(urlLike) {
+  const s = String(urlLike ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("#")) return "";
+  if (s.startsWith("webcal://")) return `https://${s.slice("webcal://".length)}`;
+  return s;
+}
+
+function getIcsUrlCandidates(urlLike) {
+  const normalized = normalizeIcsUrl(urlLike);
+  if (!normalized) return [];
+  const candidates = [];
+  try {
+    const u = new URL(normalized);
+    // Some calendar providers return 500 when pathname contains duplicated slashes.
+    u.pathname = u.pathname.replace(/\/{2,}/g, "/");
+    candidates.push(u.toString());
+    if (u.protocol === "https:") {
+      const http = new URL(u.toString());
+      http.protocol = "http:";
+      candidates.push(http.toString());
+    }
+  } catch (_e) {
+    return [];
+  }
+  return [...new Set(candidates)];
+}
+
+function parseIcsDateValue(v) {
+  const s = String(v ?? "").trim();
+  const m = s.match(/^(\d{4})(\d{2})(\d{2})/);
+  if (!m) return "";
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+function unescapeIcsText(v) {
+  return String(v ?? "")
+    .replace(/\\n/gi, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function parseIcsDateTimeInfo(namePart, value) {
+  const raw = String(value ?? "").trim();
+  const date = parseIcsDateValue(raw);
+  if (!DATE_RE.test(date)) return null;
+  const valueTypeDate = /(?:^|;)VALUE=DATE(?:;|$)/i.test(String(namePart || ""));
+  const hasTime = !valueTypeDate && /^\d{8}T\d{6}/.test(raw);
+  const time = hasTime ? `${raw.slice(9, 11)}:${raw.slice(11, 13)}` : "";
+  return { date, time, allDay: !hasTime };
+}
+
+function unfoldIcsLines(raw) {
+  const lines = String(raw ?? "").split(/\r?\n/);
+  const out = [];
+  for (const line of lines) {
+    if (!out.length) {
+      out.push(line);
+      continue;
+    }
+    if (line.startsWith(" ") || line.startsWith("\t")) out[out.length - 1] += line.slice(1);
+    else out.push(line);
+  }
+  return out;
+}
+
+function parseIcsEvents(text, sourceUrl) {
+  const lines = unfoldIcsLines(text);
+  const dates = new Set();
+  const events = [];
+  let inEvent = false;
+  let current = null;
+
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") {
+      inEvent = true;
+      current = { uid: "", summary: "", description: "", location: "", date: "", time: "", allDay: true };
+      continue;
+    }
+    if (line === "END:VEVENT") {
+      if (current && DATE_RE.test(current.date)) {
+        const event = {
+          uid: current.uid || `${current.date}|${current.summary}|${current.time}`,
+          date: current.date,
+          time: current.time || "",
+          allDay: Boolean(current.allDay),
+          summary: current.summary || "(Untitled)",
+          description: current.description || "",
+          location: current.location || "",
+          source: sourceUrl
+        };
+        dates.add(event.date);
+        events.push(event);
+      }
+      current = null;
+      inEvent = false;
+      continue;
+    }
+    if (!inEvent || !current) continue;
+
+    const idx = line.indexOf(":");
+    if (idx < 0) continue;
+    const namePart = line.slice(0, idx);
+    const value = line.slice(idx + 1);
+    const propName = namePart.split(";")[0].toUpperCase();
+
+    if (propName === "DTSTART") {
+      const info = parseIcsDateTimeInfo(namePart, value);
+      if (info) {
+        current.date = info.date;
+        current.time = info.time;
+        current.allDay = info.allDay;
+      }
+      continue;
+    }
+
+    if (propName === "SUMMARY") {
+      current.summary = unescapeIcsText(value);
+      continue;
+    }
+
+    if (propName === "DESCRIPTION") {
+      current.description = unescapeIcsText(value);
+      continue;
+    }
+
+    if (propName === "LOCATION") {
+      current.location = unescapeIcsText(value);
+      continue;
+    }
+
+    if (propName === "UID") {
+      current.uid = unescapeIcsText(value);
+    }
+  }
+
+  events.sort((a, b) => {
+    if (a.date < b.date) return -1;
+    if (a.date > b.date) return 1;
+    if (a.time < b.time) return -1;
+    if (a.time > b.time) return 1;
+    return a.summary.localeCompare(b.summary);
+  });
+  return { dates: [...dates], events };
+}
+
+async function fetchIcsFeedDates(url) {
+  const candidates = getIcsUrlCandidates(url);
+  if (!candidates.length) {
+    return { ok: false, url, dates: [], error: "Invalid ICS URL" };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    let lastErr = "Fetch failed";
+    for (const candidate of candidates) {
+      try {
+        const res = await fetch(candidate, {
+          signal: controller.signal,
+          redirect: "follow",
+          headers: {
+            Accept: "text/calendar,text/plain;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-GB,en;q=0.9",
+            "User-Agent": "Noteslip/26"
+          }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = await res.text();
+        const parsed = parseIcsEvents(body, candidate);
+        return { ok: true, url: candidate, dates: parsed.dates, events: parsed.events };
+      } catch (e) {
+        lastErr = e && e.message ? String(e.message) : "Fetch failed";
+      }
+    }
+    return { ok: false, url, dates: [], events: [], error: lastErr };
+  } catch (e) {
+    const msg = e && e.message ? String(e.message) : "Fetch failed";
+    return { ok: false, url, dates: [], events: [], error: msg };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchIcsDatesFromSettings() {
+  const settings = await getSettings();
+  const urls = String(settings.icsFeeds ?? "")
+    .split(/\r?\n/)
+    .map(normalizeIcsUrl)
+    .filter(Boolean);
+  if (!urls.length) return { ok: true, dates: [], sources: [] };
+  const sources = await Promise.all(urls.map((u) => fetchIcsFeedDates(u)));
+  const allDates = new Set();
+  const allEvents = [];
+  for (const source of sources) {
+    for (const d of source.dates || []) allDates.add(d);
+    for (const ev of source.events || []) allEvents.push(ev);
+  }
+  return { ok: true, dates: [...allDates].sort(compareDateAsc), events: allEvents, sources };
+}
+
 async function openLogsDir() {
   const settings = await getSettings();
   const logsDir = getLogsDirSync(settings);
@@ -353,6 +573,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("dialogs:chooseDir", async (_event, payload) => chooseDirectoryDialog(payload?.title));
+  ipcMain.handle("calendar:icsDates", async () => fetchIcsDatesFromSettings());
 
   createWindow();
 
@@ -361,7 +582,7 @@ app.whenReady().then(() => {
       label: "文件",
       submenu: [
         {
-          label: "导出…",
+          label: "导出...",
           click: () => dispatchMenuAction("export")
         },
         { type: "separator" },
@@ -374,7 +595,7 @@ app.whenReady().then(() => {
           }
         },
         {
-          label: "立即备份…",
+          label: "立即备份...",
           click: async () => {
             try {
               await backupNow();
@@ -383,7 +604,7 @@ app.whenReady().then(() => {
         },
         { type: "separator" },
         {
-          label: "设置…",
+          label: "设置...",
           click: () => dispatchMenuAction("settings")
         },
         { type: "separator" },
@@ -420,7 +641,7 @@ app.whenReady().then(() => {
       label: "帮助",
       submenu: [
         {
-          label: "Noteslip 帮助",
+          label: "使用帮助",
           click: () => dispatchMenuAction("help")
         },
         {
@@ -440,3 +661,4 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+

@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("noteslip", {
   getSettings: () => ipcRenderer.invoke("settings:get"),
   setSettings: (settings, migrate) => ipcRenderer.invoke("settings:set", { settings, migrate }),
   chooseDir: (title) => ipcRenderer.invoke("dialogs:chooseDir", { title }),
+  getIcsDates: () => ipcRenderer.invoke("calendar:icsDates"),
   onMenuAction: (handler) => {
     if (typeof handler !== "function") return () => {};
     const listener = (_event, action) => handler(action);

@@ -16,15 +16,31 @@
           </div>
         </div>
 
-        <div class="datePickerRow">
-          <input id="datePicker" type="date" />
-          <button id="openBtn" type="button">打开</button>
-        </div>
-
         <div class="searchRow">
-          <input id="searchInput" type="search" placeholder="搜索…" />
+          <input id="searchInput" type="search" placeholder="搜索..." />
           <button id="clearSearchBtn" type="button">清除</button>
         </div>
+
+        <section class="calendarPanel">
+          <div class="calendarHeader">
+            <button id="calendarPrevBtn" type="button" title="上个月">◀</button>
+            <div id="calendarMonthLabel" class="calendarMonthLabel"></div>
+            <button id="calendarNextBtn" type="button" title="下个月">▶</button>
+          </div>
+          <div id="calendarWeek" class="calendarWeek"></div>
+          <div id="calendarGrid" class="calendarGrid"></div>
+          <div class="calendarFooter">
+            <button id="calendarTodayBtn" type="button">本月</button>
+            <button id="refreshIcsBtn" type="button">刷新 ICS</button>
+          </div>
+        </section>
+
+        <section class="calendarPanel">
+          <div class="calendarHeader">
+            <div class="calendarMonthLabel">日历信息（ICS + TODO）</div>
+          </div>
+          <div id="icsSummary" class="icsSummary"></div>
+        </section>
 
         <div id="listHeader" class="listHeader">已有日志</div>
         <div id="logList" class="logList"></div>
@@ -41,7 +57,7 @@
           </div>
         </div>
         <div id="editorBody" class="editorBody">
-          <textarea id="content" class="content" spellcheck="false" placeholder="开始记录今天的内容…"></textarea>
+          <textarea id="content" class="content" spellcheck="false" placeholder="开始记录今天的内容..."></textarea>
           <div id="preview" class="preview hidden"></div>
         </div>
       </main>
@@ -67,6 +83,33 @@
               <input id="backupDirInput" type="text" placeholder="用于“一键备份”保存位置" />
               <button id="chooseBackupDirBtn" type="button">选择</button>
             </div>
+          </div>
+          <div class="field">
+            <div class="label">主题模式</div>
+            <div class="radioGroup">
+              <label class="radioRow">
+                <input id="themeModeLight" type="radio" name="themeMode" value="light" />
+                浅色
+              </label>
+              <label class="radioRow">
+                <input id="themeModeDark" type="radio" name="themeMode" value="dark" />
+                深色
+              </label>
+              <label class="radioRow">
+                <input id="themeModeAuto" type="radio" name="themeMode" value="auto" />
+                按时间自动切换
+              </label>
+              <div id="themeAutoRangeRow" class="exportRangeRow">
+                <input id="autoDarkStartInput" type="time" />
+                <input id="autoDarkEndInput" type="time" />
+              </div>
+            </div>
+            <div class="hint">自动模式：开始时间后进入深色，结束时间后恢复浅色</div>
+          </div>
+          <div class="field">
+            <div class="label">ICS 日历订阅（每行一个 URL）</div>
+            <textarea id="icsFeedsInput" class="templateInput" spellcheck="false" placeholder="https://example.com/calendar.ics"></textarea>
+            <div class="hint">支持 https:// 和 webcal://，保存后可点“刷新 ICS”拉取事件日期</div>
           </div>
           <div class="field">
             <div class="label">每日模板</div>
