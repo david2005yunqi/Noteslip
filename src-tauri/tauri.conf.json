@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "frontendDist": "../renderer"
+  },
+  "productName": "Noteslip",
+  "version": "26.0.1",
+  "identifier": "com.noteslip.app",
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "Noteslip",
+        "width": 1100,
+        "height": 750
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "category": "Productivity",
+    "icon": [],
+    "targets": "all"
+  }
+}

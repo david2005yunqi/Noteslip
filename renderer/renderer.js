@@ -1,4 +1,34 @@
-﻿const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+﻿(() => {
+  if (window.noteslip || !window.__TAURI__) return;
+  const invoke = window.__TAURI__.tauri.invoke;
+  const listen = window.__TAURI__.event.listen;
+  window.noteslip = {
+    getToday: () => invoke("logs_today"),
+    listLogs: () => invoke("logs_list"),
+    readLog: (date) => invoke("logs_read", { date }),
+    writeLog: (date, content) => invoke("logs_write", { date, content }),
+    searchLogs: (query, options) => invoke("logs_search", { query, options }),
+    exportLogs: (payload) => invoke("logs_export", { payload }),
+    openLogsDir: () => invoke("logs_open_dir"),
+    backupNow: () => invoke("logs_backup_now"),
+    getSettings: () => invoke("settings_get"),
+    setSettings: (settings, migrate) => invoke("settings_set", { settings, migrate }),
+    chooseDir: (title) => invoke("dialogs_choose_dir", { title }),
+    getIcsDates: () => invoke("calendar_ics_dates"),
+    onMenuAction: (handler) => {
+      if (typeof handler !== "function") return () => {};
+      let unlisten = null;
+      listen("menu:action", (event) => handler(event.payload)).then((fn) => {
+        unlisten = fn;
+      });
+      return () => {
+        if (unlisten) unlisten();
+      };
+    }
+  };
+})();
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const APP_VERSION = "26.0.1.0";
 const WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -1165,7 +1195,7 @@ function aboutHtml() {
 </div>
 <div class="field">
   <div class="label">开源依赖</div>
-  <div class="hint"><a href="https://www.electronjs.org/" target="_blank" rel="noreferrer">Electron</a></div>
+  <div class="hint"><a href="https://tauri.app/" target="_blank" rel="noreferrer">Tauri</a></div>
 </div>
 <div class="field">
   <div class="label">License</div>

@@ -1,29 +1,14 @@
 {
   "name": "noteslip",
   "version": "26.0.1",
-  "description": "Daily log app built with Electron",
-  "main": "main.js",
+  "description": "Daily log app built with Rust and Tauri",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "start": "tauri dev",
+    "dev": "tauri dev",
+    "pack": "tauri build",
+    "dist": "tauri build"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^26.0.0",
-    "universalify": "^2.0.1"
-  },
-  "build": {
-    "appId": "com.noteslip.app",
-    "productName": "Noteslip",
-    "files": [
-      "**/*"
-    ],
-    "asar": true,
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    }
+    "@tauri-apps/cli": "^2.0.0"
   }
 }
