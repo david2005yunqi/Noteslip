@@ -1,27 +1,33 @@
-# Node / Electron
+# Build and OS
 node_modules/
 dist/
 out/
+target/
+bin/
 releases/
 
-*.exe
-*.msi
-*.blockmap
-latest*.yml
+# Tauri
+src-tauri/target/
 
-npm-debug.log*
-yarn-error.log*
+# OS Specific
 .DS_Store
 Thumbs.db
 Desktop.ini
 
-# Java build artifacts (legacy)
-target/
-installer/
-jpackage-input/
-*.msi
-*.jar
-
-# Misc
-.env
+# Logs and debug
 *.log
+npm-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+
+# Workspace
+.vscode/
+.idea/
+
+# Notes data (if stored in workspace, though usually in userData)
+*.excalidraw.json
+daily-logs/
+general-notes/
+whiteboards/

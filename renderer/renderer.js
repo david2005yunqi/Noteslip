@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   if (window.noteslip || !window.__TAURI__) return;
   const invoke = window.__TAURI__.tauri.invoke;
   const listen = window.__TAURI__.event.listen;
@@ -15,6 +15,12 @@
     setSettings: (settings, migrate) => invoke("settings_set", { settings, migrate }),
     chooseDir: (title) => invoke("dialogs_choose_dir", { title }),
     getIcsDates: () => invoke("calendar_ics_dates"),
+    listNotes: () => invoke("notes_list"),
+    readNote: (name) => invoke("notes_read", { name }),
+    writeNote: (name, content) => invoke("notes_write", { name, content }),
+    listWhiteboards: () => invoke("whiteboard_list"),
+    readWhiteboard: (name) => invoke("whiteboard_read", { name }),
+    writeWhiteboard: (name, content) => invoke("whiteboard_write", { name, content }),
     onMenuAction: (handler) => {
       if (typeof handler !== "function") return () => {};
       let unlisten = null;
@@ -137,20 +143,34 @@ function buildIcsEventsByDate(events) {
 }
 
 const els = {
+  tabLogs: document.getElementById("tabLogs"),
+  tabNotes: document.getElementById("tabNotes"),
+  tabWhiteboard: document.getElementById("tabWhiteboard"),
+  sidebarLogs: document.getElementById("sidebarLogs"),
+  sidebarNotes: document.getElementById("sidebarNotes"),
+  sidebarWhiteboards: document.getElementById("sidebarWhiteboards"),
   todayBtn: document.getElementById("todayBtn"),
   searchInput: document.getElementById("searchInput"),
   clearSearchBtn: document.getElementById("clearSearchBtn"),
   listHeader: document.getElementById("listHeader"),
   logList: document.getElementById("logList"),
+  noteList: document.getElementById("noteList"),
+  whiteboardList: document.getElementById("whiteboardList"),
   currentDate: document.getElementById("currentDate"),
   status: document.getElementById("status"),
   previewBtn: document.getElementById("previewBtn"),
+  editorHeader: document.getElementById("editorHeader"),
   editorBody: document.getElementById("editorBody"),
   content: document.getElementById("content"),
   preview: document.getElementById("preview"),
+  whiteboardBody: document.getElementById("whiteboardBody"),
+  whiteboardIframe: document.getElementById("whiteboardIframe"),
+  newNoteBtn: document.getElementById("newNoteBtn"),
+  newWhiteboardBtn: document.getElementById("newWhiteboardBtn"),
   modalBackdrop: document.getElementById("modalBackdrop"),
   closeSettingsBtn: document.getElementById("closeSettingsBtn"),
   storageDirInput: document.getElementById("storageDirInput"),
+  whiteboardDirInput: document.getElementById("whiteboardDirInput"),
   backupDirInput: document.getElementById("backupDirInput"),
   templateInput: document.getElementById("templateInput"),
   themeModeLight: document.getElementById("themeModeLight"),
@@ -161,6 +181,7 @@ const els = {
   autoDarkEndInput: document.getElementById("autoDarkEndInput"),
   icsFeedsInput: document.getElementById("icsFeedsInput"),
   chooseStorageDirBtn: document.getElementById("chooseStorageDirBtn"),
+  chooseWhiteboardDirBtn: document.getElementById("chooseWhiteboardDirBtn"),
   chooseBackupDirBtn: document.getElementById("chooseBackupDirBtn"),
   saveSettingsBtn: document.getElementById("saveSettingsBtn"),
   infoBackdrop: document.getElementById("infoBackdrop"),
@@ -190,7 +211,10 @@ const els = {
 };
 
 const state = {
+  currentTab: "logs", // logs, notes, whiteboard
   currentDate: null,
+  currentNote: null,
+  currentWhiteboard: null,
   dirty: false,
   saving: false,
   lastSavedContent: "",
@@ -208,6 +232,8 @@ const state = {
   calendarMonth: monthStart(new Date()),
   logDates: [],
   logDatesSet: new Set(),
+  noteFiles: [],
+  whiteboardFiles: [],
   icsDatesSet: new Set(),
   icsEvents: [],
   icsEventsByDate: new Map(),
@@ -236,11 +262,44 @@ function setUiSaving(isSaving) {
   els.logList.style.opacity = state.saving ? "0.6" : "1";
 }
 
+function switchTab(tab) {
+  state.currentTab = tab;
+  els.tabLogs.classList.toggle("active", tab === "logs");
+  els.tabNotes.classList.toggle("active", tab === "notes");
+  els.tabWhiteboard.classList.toggle("active", tab === "whiteboard");
+
+  els.sidebarLogs.classList.toggle("hidden", tab !== "logs");
+  els.sidebarNotes.classList.toggle("hidden", tab !== "notes");
+  els.sidebarWhiteboards.classList.toggle("hidden", tab !== "whiteboard");
+
+  els.editorHeader.classList.toggle("hidden", tab === "whiteboard");
+  els.editorBody.classList.toggle("hidden", tab === "whiteboard");
+  els.whiteboardBody.classList.toggle("hidden", tab !== "whiteboard");
+
+  if (tab === "logs") refreshList();
+  else if (tab === "notes") refreshNoteList();
+  else if (tab === "whiteboard") refreshWhiteboardList();
+}
+
 function setCurrentDate(date) {
   state.currentDate = date;
+  state.currentNote = null;
   els.currentDate.textContent = date || "";
   renderActiveListItem();
   renderCalendar();
+}
+
+function setCurrentNote(name) {
+  state.currentNote = name;
+  state.currentDate = null;
+  els.currentDate.textContent = name || "";
+  renderActiveListItem();
+}
+
+function setCurrentWhiteboard(name) {
+  state.currentWhiteboard = name;
+  els.currentDate.textContent = name || "";
+  renderActiveListItem();
 }
 
 function getEditorContent() {
@@ -742,9 +801,65 @@ function renderLogListGrouped() {
   }
 }
 
+async function refreshNoteList() {
+  const notes = await window.noteslip.listNotes();
+  state.noteFiles = notes;
+  renderNoteList();
+  renderActiveListItem();
+}
+
+function renderNoteList() {
+  els.noteList.innerHTML = "";
+  if (!state.noteFiles.length) {
+    const empty = document.createElement("div");
+    empty.className = "logItem";
+    empty.style.cursor = "default";
+    empty.textContent = "暂无笔记";
+    els.noteList.appendChild(empty);
+    return;
+  }
+
+  for (const name of state.noteFiles) {
+    const item = document.createElement("div");
+    item.className = "logItem";
+    item.dataset.name = name;
+    item.textContent = name;
+    item.addEventListener("click", () => openNote(name));
+    els.noteList.appendChild(item);
+  }
+}
+
+async function refreshWhiteboardList() {
+  const boards = await window.noteslip.listWhiteboards();
+  state.whiteboardFiles = boards;
+  renderWhiteboardList();
+  renderActiveListItem();
+}
+
+function renderWhiteboardList() {
+  els.whiteboardList.innerHTML = "";
+  if (!state.whiteboardFiles.length) {
+    const empty = document.createElement("div");
+    empty.className = "logItem";
+    empty.style.cursor = "default";
+    empty.textContent = "暂无白板";
+    els.whiteboardList.appendChild(empty);
+    return;
+  }
+
+  for (const name of state.whiteboardFiles) {
+    const item = document.createElement("div");
+    item.className = "logItem";
+    item.dataset.whiteboard = name;
+    item.textContent = name.replace(".excalidraw.json", "");
+    item.addEventListener("click", () => openWhiteboard(name));
+    els.whiteboardList.appendChild(item);
+  }
+}
+
 function renderActiveListItem() {
-  const items = els.logList.querySelectorAll(".logItem");
-  for (const it of items) {
+  const logItems = els.logList.querySelectorAll(".logItem");
+  for (const it of logItems) {
     if (it.dataset.date === state.currentDate) it.classList.add("active");
     else it.classList.remove("active");
 
@@ -764,11 +879,34 @@ function renderActiveListItem() {
       }
     }
   }
+
+  const noteItems = els.noteList.querySelectorAll(".logItem");
+  for (const it of noteItems) {
+    it.classList.toggle("active", it.dataset.name === state.currentNote);
+  }
+
+  const boardItems = els.whiteboardList.querySelectorAll(".logItem");
+  for (const it of boardItems) {
+    it.classList.toggle("active", it.dataset.whiteboard === state.currentWhiteboard);
+  }
 }
 
 async function saveNow() {
-  if (!state.currentDate) return { ok: false, skipped: true };
   const content = getEditorContent();
+  const tab = state.currentTab;
+
+  if (tab === "whiteboard") {
+     if (!state.currentWhiteboard) return { ok: false, skipped: true };
+     // Whiteboard saving is usually handled by the whiteboard iframe sending data
+     // but we can have a manual trigger if needed.
+     return { ok: true, skipped: true };
+  }
+
+  const isLog = tab === "logs";
+  const identifier = isLog ? state.currentDate : state.currentNote;
+
+  if (!identifier) return { ok: false, skipped: true };
+
   if (!state.dirty && content === state.lastSavedContent) {
     if (!state.saving) setStatus("Saved");
     return { ok: true, skipped: true };
@@ -779,11 +917,16 @@ async function saveNow() {
   const seq = ++state.saveSeq;
   const p = (async () => {
     try {
-      await window.noteslip.writeLog(state.currentDate, content);
+      if (isLog) {
+        await window.noteslip.writeLog(identifier, content);
+      } else {
+        await window.noteslip.writeNote(identifier, content);
+      }
       if (seq !== state.saveSeq) return { ok: true, superseded: true };
       setUiSaving(false);
       markClean(content);
-      await refreshList();
+      if (isLog) await refreshList();
+      else await refreshNoteList();
       return { ok: true };
     } catch (_e) {
       if (seq !== state.saveSeq) return { ok: false, superseded: true };
@@ -829,14 +972,43 @@ async function openDate(date) {
   setEditorContent(content);
   if (exists) {
     markClean(content);
-    await refreshList();
   } else {
     state.lastSavedContent = "";
     if (String(content ?? "")) markDirty();
     else setStatus("");
-    await refreshList();
   }
+  await refreshList();
   renderPreviewNow();
+}
+
+async function openNote(name) {
+  if (state.currentNote === name) return;
+  const ok = await ensureSaved();
+  if (!ok) return;
+
+  const res = await window.noteslip.readNote(name);
+  const content = res && typeof res === "object" ? res.content : "";
+  const exists = Boolean(res && typeof res === "object" ? res.exists : false);
+  setCurrentNote(name);
+  setEditorContent(content);
+  if (exists) {
+    markClean(content);
+  } else {
+    state.lastSavedContent = "";
+    if (String(content ?? "")) markDirty();
+    else setStatus("");
+  }
+  await refreshNoteList();
+  renderPreviewNow();
+}
+
+async function openWhiteboard(name) {
+  if (state.currentWhiteboard === name) return;
+  const board = await window.noteslip.readWhiteboard(name);
+  setCurrentWhiteboard(name);
+  // Load into iframe
+  els.whiteboardIframe.src = `./excalidraw.html?name=${encodeURIComponent(name)}`;
+  await refreshWhiteboardList();
 }
 
 async function openToday() {
@@ -845,6 +1017,24 @@ async function openToday() {
 }
 
 function wireEvents() {
+  els.tabLogs.addEventListener("click", () => switchTab("logs"));
+  els.tabNotes.addEventListener("click", () => switchTab("notes"));
+  els.tabWhiteboard.addEventListener("click", () => switchTab("whiteboard"));
+
+  els.newNoteBtn.addEventListener("click", async () => {
+    const name = window.prompt("请输入笔记名称", "新建笔记");
+    if (!name) return;
+    const fileName = name.endsWith(".md") ? name : `${name}.md`;
+    await openNote(fileName);
+  });
+
+  els.newWhiteboardBtn.addEventListener("click", async () => {
+    const name = window.prompt("请输入白板名称", "新建白板");
+    if (!name) return;
+    const fileName = name.endsWith(".excalidraw.json") ? name : `${name}.excalidraw.json`;
+    await openWhiteboard(fileName);
+  });
+
   els.todayBtn.addEventListener("click", () => {
     openToday().catch(() => setStatus("Open failed"));
   });
@@ -861,12 +1051,12 @@ function wireEvents() {
     if (state.previewEnabled) {
       els.preview.classList.remove("hidden");
       els.editorBody.classList.add("split");
-      els.previewBtn.textContent = "Edit";
+      els.previewBtn.textContent = "编辑";
       renderPreviewNow();
     } else {
       els.preview.classList.add("hidden");
       els.editorBody.classList.remove("split");
-      els.previewBtn.textContent = "Preview";
+      els.previewBtn.textContent = "预览";
     }
   });
 
@@ -912,12 +1102,17 @@ function wireEvents() {
   });
 
   els.chooseStorageDirBtn.addEventListener("click", async () => {
-    const res = await window.noteslip.chooseDir("Choose storage directory");
+    const res = await window.noteslip.chooseDir("选择存储目录");
     if (res && !res.canceled && res.path) els.storageDirInput.value = res.path;
   });
 
+  els.chooseWhiteboardDirBtn.addEventListener("click", async () => {
+    const res = await window.noteslip.chooseDir("选择白板目录");
+    if (res && !res.canceled && res.path) els.whiteboardDirInput.value = res.path;
+  });
+
   els.chooseBackupDirBtn.addEventListener("click", async () => {
-    const res = await window.noteslip.chooseDir("Choose backup directory");
+    const res = await window.noteslip.chooseDir("选择备份目录");
     if (res && !res.canceled && res.path) els.backupDirInput.value = res.path;
   });
 
@@ -977,10 +1172,16 @@ function wireEvents() {
   if (window.noteslip.onMenuAction) {
     window.noteslip.onMenuAction((action) => {
       const a = String(action || "");
-      if (a === "help") openInfo("Help", helpHtml());
-      else if (a === "learnMore") openInfo("About", aboutHtml());
+      if (a === "newNote") {
+        switchTab("notes");
+        els.newNoteBtn.click();
+      } else if (a === "newWhiteboard") {
+        switchTab("whiteboard");
+        els.newWhiteboardBtn.click();
+      } else if (a === "help") openInfo("使用帮助", helpHtml());
+      else if (a === "learnMore") openInfo("关于软件", aboutHtml());
       else if (a === "export") openExport();
-      else if (a === "settings") openSettings().catch(() => setStatus("Open settings failed"));
+      else if (a === "settings") openSettings().catch(() => setStatus("打开设置失败"));
     });
   }
 }
@@ -988,14 +1189,14 @@ function wireEvents() {
 function renderSearchResults() {
   els.logList.innerHTML = "";
   const q = state.searchQuery;
-  els.listHeader.textContent = q ? `Search results (${state.searchResults.length})` : "Logs";
+  els.listHeader.textContent = q ? `搜索结果 (${state.searchResults.length})` : "已有日志";
   if (!q) return;
 
   if (!state.searchResults.length) {
     const empty = document.createElement("div");
     empty.className = "logItem";
     empty.style.cursor = "default";
-    empty.textContent = "No results";
+    empty.textContent = "无结果";
     els.logList.appendChild(empty);
     return;
   }
@@ -1003,10 +1204,11 @@ function renderSearchResults() {
   for (const r of state.searchResults) {
     const item = document.createElement("div");
     item.className = "logItem";
-    item.dataset.date = r.date;
+    const label = r.date ? r.date : r.name;
+    item.dataset.label = label;
 
     const left = document.createElement("div");
-    left.textContent = `${r.date}:${r.line}`;
+    left.textContent = `${label}:${r.line}`;
 
     const right = document.createElement("div");
     right.className = "previewLine";
@@ -1016,13 +1218,19 @@ function renderSearchResults() {
     item.appendChild(right);
 
     item.addEventListener("click", async () => {
-      await openDate(r.date);
+      if (r.date) {
+        switchTab("logs");
+        await openDate(r.date);
+      } else {
+        switchTab("notes");
+        await openNote(r.name);
+      }
       const content = getEditorContent();
       const idx = content.toLowerCase().indexOf(String(q).toLowerCase());
       if (idx >= 0) {
         els.content.focus();
         els.content.setSelectionRange(idx, idx + q.length);
-        setStatus("Located");
+        setStatus("已定位");
       }
     });
 
@@ -1208,6 +1416,7 @@ async function openSettings() {
   const settings = res && res.settings ? res.settings : null;
   state.settings = settings || {};
   els.storageDirInput.value = String(settings?.storageDir ?? "");
+  els.whiteboardDirInput.value = String(settings?.whiteboardDir ?? "");
   els.backupDirInput.value = String(settings?.backupDir ?? "");
   els.templateInput.value = String(settings?.template ?? "");
   els.icsFeedsInput.value = String(settings?.icsFeeds ?? "");
@@ -1220,6 +1429,7 @@ async function saveSettingsFromModal() {
   const theme = getThemeSettingsFromInputs();
   const next = {
     storageDir: String(els.storageDirInput.value ?? "").trim(),
+    whiteboardDir: String(els.whiteboardDirInput.value ?? "").trim(),
     backupDir: String(els.backupDirInput.value ?? "").trim(),
     template: String(els.templateInput.value ?? ""),
     icsFeeds: String(els.icsFeedsInput.value ?? ""),
@@ -1229,7 +1439,7 @@ async function saveSettingsFromModal() {
   };
 
   const storageChanged = String(prev?.storageDir ?? "").trim() !== next.storageDir;
-  const migrate = storageChanged ? window.confirm("Storage directory changed. Copy old logs to new directory?") : false;
+  const migrate = storageChanged ? window.confirm("存储目录已更改。是否将旧日志移动到新目录？") : false;
   const res = await window.noteslip.setSettings(next, migrate);
   state.settings = res && res.settings ? res.settings : next;
   applyThemeNow();
@@ -1237,7 +1447,7 @@ async function saveSettingsFromModal() {
   closeSettings();
   await refreshList();
   await refreshIcsDates({ silent: true });
-  setStatus("Settings saved");
+  setStatus("设置已保存");
 }
 
 async function init() {

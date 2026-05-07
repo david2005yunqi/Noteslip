@@ -31,6 +31,7 @@ struct Settings {
     template: String,
     storage_dir: String,
     backup_dir: String,
+    whiteboard_dir: String,
     theme_mode: String,
     auto_dark_start: String,
     auto_dark_end: String,
@@ -43,6 +44,7 @@ impl Default for Settings {
             template: "# {{date}}\n\n## 记录\n- \n".to_string(),
             storage_dir: String::new(),
             backup_dir: String::new(),
+            whiteboard_dir: String::new(),
             theme_mode: "auto".to_string(),
             auto_dark_start: "19:00".to_string(),
             auto_dark_end: "07:00".to_string(),
@@ -57,6 +59,7 @@ struct PartialSettings {
     template: Option<String>,
     storage_dir: Option<String>,
     backup_dir: Option<String>,
+    whiteboard_dir: Option<String>,
     theme_mode: Option<String>,
     auto_dark_start: Option<String>,
     auto_dark_end: Option<String>,
@@ -83,6 +86,14 @@ struct ReadLogResponse {
 }
 
 #[derive(Debug, Serialize)]
+struct ReadNoteResponse {
+    ok: bool,
+    name: String,
+    exists: bool,
+    content: String,
+}
+
+#[derive(Debug, Serialize)]
 struct SearchResponse {
     ok: bool,
     results: Vec<SearchResult>,
@@ -90,7 +101,10 @@ struct SearchResponse {
 
 #[derive(Debug, Serialize)]
 struct SearchResult {
-    date: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
     line: usize,
     preview: String,
 }
@@ -104,10 +118,11 @@ struct SearchOptions {
 
 #[derive(Debug, Deserialize)]
 struct ExportPayload {
-    kind: String,
+    kind: String, // current, range, all, note
     date: Option<String>,
     from: Option<String>,
     to: Option<String>,
+    name: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -156,12 +171,82 @@ struct IcsSourceResponse {
     error: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
-struct IcsResponse {
-    ok: bool,
-    dates: Vec<String>,
-    events: Vec<IcsEvent>,
-    sources: Vec<IcsSourceResponse>,
+#[derive(Debug, Serialize, Deserialize)]
+struct NoteWithMetadata {
+    metadata: serde_json::Value,
+    body: String,
+}
+
+fn parse_frontmatter(content: &str) -> (serde_json::Value, String) {
+    if !content.starts_with("---") {
+        return (serde_json::Value::Object(serde_json::Map::new()), content.to_string());
+    }
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.len() < 2 {
+         return (serde_json::Value::Object(serde_json::Map::new()), content.to_string());
+    }
+    let mut end_idx = None;
+    for i in 1..lines.len() {
+        if lines[i].trim() == "---" {
+            end_idx = Some(i);
+            break;
+        }
+    }
+    match end_idx {
+        Some(idx) => {
+            let yaml_str = lines[1..idx].join("\n");
+            // Basic YAML parsing (just key: value for now, or use a crate)
+            // Since we want to avoid new crates if possible, let's do a simple one or use serde_json if it's actually JSON
+            // Noteseye used a custom simple parser. I'll do something similar.
+            let mut map = serde_json::Map::new();
+            for line in lines[1..idx].iter() {
+                if let Some((key, value)) = line.split_once(':') {
+                    let key = key.trim();
+                    let value = value.trim();
+                    let val = if value == "true" {
+                        serde_json::Value::Bool(true)
+                    } else if value == "false" {
+                        serde_json::Value::Bool(false)
+                    } else if value.starts_with('[') && value.ends_with(']') {
+                        let items: Vec<serde_json::Value> = value[1..value.len()-1]
+                            .split(',')
+                            .map(|s| serde_json::Value::String(s.trim().trim_matches('"').trim_matches('\'').to_string()))
+                            .collect();
+                        serde_json::Value::Array(items)
+                    } else {
+                        serde_json::Value::String(value.trim_matches('"').trim_matches('\'').to_string())
+                    };
+                    map.insert(key.to_string(), val);
+                }
+            }
+            (serde_json::Value::Object(map), lines[idx+1..].join("\n"))
+        }
+        None => (serde_json::Value::Object(serde_json::Map::new()), content.to_string()),
+    }
+}
+
+fn serialize_frontmatter(metadata: &serde_json::Value, body: &str) -> String {
+    if let Some(obj) = metadata.as_object() {
+        if obj.is_empty() {
+            return body.to_string();
+        }
+        let mut out = String::from("---\n");
+        for (key, value) in obj {
+            if let Some(s) = value.as_str() {
+                out.push_str(&format!("{}: \"{}\"\n", key, s));
+            } else if let Some(b) = value.as_bool() {
+                out.push_str(&format!("{}: {}\n", key, b));
+            } else if let Some(arr) = value.as_array() {
+                let items: Vec<String> = arr.iter().map(|v| format!("\"{}\"", v.as_str().unwrap_or(""))).collect();
+                out.push_str(&format!("{}: [{}]\n", key, items.join(", ")));
+            }
+        }
+        out.push_str("---\n\n");
+        out.push_str(body);
+        out
+    } else {
+        body.to_string()
+    }
 }
 
 fn is_valid_date(v: &str) -> bool {
@@ -202,6 +287,7 @@ fn normalize_settings(input: Settings) -> Settings {
         template: input.template,
         storage_dir: input.storage_dir,
         backup_dir: input.backup_dir,
+        whiteboard_dir: input.whiteboard_dir,
         theme_mode: if is_valid_theme_mode(&input.theme_mode) {
             input.theme_mode
         } else {
@@ -226,6 +312,7 @@ fn merge_partial(current: Settings, next: PartialSettings) -> Settings {
         template: next.template.unwrap_or(current.template),
         storage_dir: next.storage_dir.unwrap_or(current.storage_dir),
         backup_dir: next.backup_dir.unwrap_or(current.backup_dir),
+        whiteboard_dir: next.whiteboard_dir.unwrap_or(current.whiteboard_dir),
         theme_mode: next.theme_mode.unwrap_or(current.theme_mode),
         auto_dark_start: next.auto_dark_start.unwrap_or(current.auto_dark_start),
         auto_dark_end: next.auto_dark_end.unwrap_or(current.auto_dark_end),
@@ -288,12 +375,57 @@ fn logs_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, Stri
     if trimmed.is_empty() {
         Ok(app_data_path(app)?.join("daily-logs"))
     } else {
+        let p = PathBuf::from(trimmed);
+        if p.file_name().map(|n| n == "daily-logs").unwrap_or(false) {
+             Ok(p)
+        } else {
+             Ok(p.join("daily-logs"))
+        }
+    }
+}
+
+fn notes_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, String> {
+    let trimmed = settings.storage_dir.trim();
+    if trimmed.is_empty() {
+        Ok(app_data_path(app)?.join("general-notes"))
+    } else {
+        let p = PathBuf::from(trimmed);
+        if p.file_name().map(|n| n == "general-notes").unwrap_or(false) {
+             Ok(p)
+        } else {
+             Ok(p.join("general-notes"))
+        }
+    }
+}
+
+fn whiteboards_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, String> {
+    let trimmed = settings.whiteboard_dir.trim();
+    if trimmed.is_empty() {
+        let base = settings.storage_dir.trim();
+        if base.is_empty() {
+            Ok(app_data_path(app)?.join("whiteboards"))
+        } else {
+            Ok(PathBuf::from(base).join("whiteboards"))
+        }
+    } else {
         Ok(PathBuf::from(trimmed))
     }
 }
 
 fn ensure_logs_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, String> {
     let dir = logs_dir(app, settings)?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+fn ensure_notes_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, String> {
+    let dir = notes_dir(app, settings)?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+fn ensure_whiteboards_dir(app: &tauri::AppHandle, settings: &Settings) -> Result<PathBuf, String> {
+    let dir = whiteboards_dir(app, settings)?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
@@ -419,28 +551,156 @@ fn logs_search(
     let needle = if case_sensitive { q.clone() } else { q.to_lowercase() };
     let mut results = Vec::new();
 
-    for date in list_log_dates_impl(&app, &state)? {
-        let read = read_log_impl(&app, &state, date.clone())?;
-        for (i, line) in read.content.lines().enumerate() {
-            let hay = if case_sensitive {
-                line.to_string()
-            } else {
-                line.to_lowercase()
-            };
-            if hay.contains(&needle) {
-                results.push(SearchResult {
-                    date: date.clone(),
-                    line: i + 1,
-                    preview: line.chars().take(300).collect(),
-                });
-                if results.len() >= limit {
-                    return Ok(SearchResponse { ok: true, results });
+    let settings = get_settings(&app, &state);
+
+    // Search logs
+    let logs_dir = logs_dir(&app, &settings)?;
+    if logs_dir.exists() {
+        for date in list_log_dates_impl(&app, &state)? {
+            let read = read_log_impl(&app, &state, date.clone())?;
+            for (i, line) in read.content.lines().enumerate() {
+                let hay = if case_sensitive {
+                    line.to_string()
+                } else {
+                    line.to_lowercase()
+                };
+                if hay.contains(&needle) {
+                    results.push(SearchResult {
+                        date: Some(date.clone()),
+                        name: None,
+                        line: i + 1,
+                        preview: line.chars().take(300).collect(),
+                    });
+                    if results.len() >= limit {
+                        return Ok(SearchResponse { ok: true, results });
+                    }
+                }
+            }
+        }
+    }
+
+    // Search general notes
+    let notes_dir = notes_dir(&app, &settings)?;
+    if notes_dir.exists() {
+        for entry in fs::read_dir(notes_dir).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            if !entry.file_type().map_err(|e| e.to_string())?.is_file() {
+                continue;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.ends_with(".md") {
+                continue;
+            }
+            let content = fs::read_to_string(entry.path()).map_err(|e| e.to_string())?;
+            for (i, line) in content.lines().enumerate() {
+                let hay = if case_sensitive {
+                    line.to_string()
+                } else {
+                    line.to_lowercase()
+                };
+                if hay.contains(&needle) {
+                    results.push(SearchResult {
+                        date: None,
+                        name: Some(name.clone()),
+                        line: i + 1,
+                        preview: line.chars().take(300).collect(),
+                    });
+                    if results.len() >= limit {
+                        return Ok(SearchResponse { ok: true, results });
+                    }
                 }
             }
         }
     }
 
     Ok(SearchResponse { ok: true, results })
+}
+
+#[tauri::command]
+fn notes_list(app: tauri::AppHandle, state: State<AppState>) -> Result<Vec<String>, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_notes_dir(&app, &settings)?;
+    let mut names = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if !entry.file_type().map_err(|e| e.to_string())?.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.ends_with(".md") {
+            names.push(name);
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
+#[tauri::command]
+fn notes_read(app: tauri::AppHandle, state: State<AppState>, name: String) -> Result<ReadNoteResponse, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_notes_dir(&app, &settings)?;
+    let path = dir.join(&name);
+    if !path.exists() {
+        return Ok(ReadNoteResponse {
+            ok: true,
+            name,
+            exists: false,
+            content: String::new(),
+        });
+    }
+    let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    Ok(ReadNoteResponse {
+        ok: true,
+        name,
+        exists: true,
+        content,
+    })
+}
+
+#[tauri::command]
+fn notes_write(app: tauri::AppHandle, state: State<AppState>, name: String, content: String) -> Result<OkResponse, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_notes_dir(&app, &settings)?;
+    fs::write(dir.join(name), content).map_err(|e| e.to_string())?;
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+fn whiteboard_list(app: tauri::AppHandle, state: State<AppState>) -> Result<Vec<String>, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_whiteboards_dir(&app, &settings)?;
+    let mut names = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if !entry.file_type().map_err(|e| e.to_string())?.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.ends_with(".excalidraw.json") {
+            names.push(name);
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
+#[tauri::command]
+fn whiteboard_read(app: tauri::AppHandle, state: State<AppState>, name: String) -> Result<String, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_whiteboards_dir(&app, &settings)?;
+    let path = dir.join(name);
+    if !path.exists() {
+        return Ok(String::new());
+    }
+    fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn whiteboard_write(app: tauri::AppHandle, state: State<AppState>, name: String, content: String) -> Result<OkResponse, String> {
+    let settings = get_settings(&app, &state);
+    let dir = ensure_whiteboards_dir(&app, &settings)?;
+    fs::write(dir.join(name), content).map_err(|e| e.to_string())?;
+    Ok(OkResponse { ok: true })
 }
 
 #[tauri::command]
@@ -574,6 +834,41 @@ fn logs_export(
         "all" => {
             dates = all_dates;
             dates.sort_by(|a, b| compare_date_asc(a, b));
+        }
+        "note" => {
+            // Special case for single note
+            let name = payload.name.ok_or_else(|| "Invalid export note name".to_string())?;
+            let notes_dir = notes_dir(&app, &settings)?;
+            let path = notes_dir.join(&name);
+            if !path.exists() {
+                 return Err("Note does not exist".to_string());
+            }
+            let default_dir = app.path().document_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let picked = app
+                .dialog()
+                .file()
+                .set_title("导出笔记")
+                .set_directory(default_dir)
+                .set_file_name(&name)
+                .add_filter("Markdown", &["md"])
+                .add_filter("Text", &["txt"])
+                .blocking_save_file();
+
+            let Some(file_path) = picked else {
+                return Ok(ExportResponse {
+                    ok: true,
+                    canceled: true,
+                    file_path: None,
+                    message: None,
+                });
+            };
+            fs::copy(path, file_path.as_path().ok_or_else(|| "Invalid export path".to_string())?).map_err(|e| e.to_string())?;
+            return Ok(ExportResponse {
+                ok: true,
+                canceled: false,
+                file_path: Some(file_path.to_string()),
+                message: None,
+            });
         }
         _ => return Err("Invalid export kind".to_string()),
     }
@@ -941,6 +1236,9 @@ async fn fetch_ics_feed_dates(url: &str) -> IcsSourceResponse {
 
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let file = SubmenuBuilder::new(app, "文件")
+        .text("new_note", "新建笔记")
+        .text("new_whiteboard", "新建白板")
+        .separator()
         .text("export", "导出...")
         .separator()
         .text("open_logs_dir", "打开日志目录")
@@ -973,6 +1271,8 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 fn handle_menu_event(app: &tauri::AppHandle, event: MenuEvent) {
     let id = event.id().as_ref();
     let action = match id {
+        "new_note" => Some("newNote"),
+        "new_whiteboard" => Some("newWhiteboard"),
         "export" => Some("export"),
         "settings" => Some("settings"),
         "help" => Some("help"),
@@ -1015,7 +1315,13 @@ fn main() {
             settings_get,
             settings_set,
             dialogs_choose_dir,
-            calendar_ics_dates
+            calendar_ics_dates,
+            notes_list,
+            notes_read,
+            notes_write,
+            whiteboard_list,
+            whiteboard_read,
+            whiteboard_write
         ])
         .run(tauri::generate_context!())
         .expect("error while running Noteslip");

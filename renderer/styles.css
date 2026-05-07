@@ -61,6 +61,46 @@ body {
   flex-direction: column;
   gap: 12px;
   background: var(--panel);
+  overflow-y: auto;
+}
+
+.sidebarTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.2s;
+}
+
+.tabBtn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.tabBtn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+.whiteboardIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
 }
 
 .sidebarHeader {
