@@ -6,8 +6,8 @@
     "frontendDist": "../renderer"
   },
   "productName": "Noteslip",
-  "version": "26.0.1",
-  "identifier": "com.noteslip.app",
+  "version": "26.0.2",
+  "identifier": "com.noteslip.daily",
   "app": {
     "withGlobalTauri": true,
     "security": {
@@ -25,16 +25,13 @@
   },
   "bundle": {
     "active": true,
-    "category": "Productivity",
-    "icon": [],
+    "category": "productivity",
+    "icon": ["icons/icon.png"],
     "targets": ["deb", "appimage", "nsis", "msi"],
     "windows": {
       "nsis": {
-        "oneClick": false,
-        "perMachine": false,
-        "allowElevation": true,
-        "allowToChangeInstallationDirectory": true,
-        "languages": ["English", "ChineseSimplified"]
+        "displayLanguageSelector": true,
+        "languages": ["English", "SimpChinese"]
       }
     }
   }

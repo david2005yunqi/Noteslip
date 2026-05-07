@@ -1,0 +1,115 @@
+"$schema" = "../gen/schemas/desktop-schema.json"
+
+[[permission]]
+identifier = "allow-logs-today"
+description = "Enables the logs_today command."
+commands.allow = ["logs_today"]
+
+[[permission]]
+identifier = "allow-logs-list"
+description = "Enables the logs_list command."
+commands.allow = ["logs_list"]
+
+[[permission]]
+identifier = "allow-logs-read"
+description = "Enables the logs_read command."
+commands.allow = ["logs_read"]
+
+[[permission]]
+identifier = "allow-logs-write"
+description = "Enables the logs_write command."
+commands.allow = ["logs_write"]
+
+[[permission]]
+identifier = "allow-logs-search"
+description = "Enables the logs_search command."
+commands.allow = ["logs_search"]
+
+[[permission]]
+identifier = "allow-logs-export"
+description = "Enables the logs_export command."
+commands.allow = ["logs_export"]
+
+[[permission]]
+identifier = "allow-logs-open-dir"
+description = "Enables the logs_open_dir command."
+commands.allow = ["logs_open_dir"]
+
+[[permission]]
+identifier = "allow-logs-backup-now"
+description = "Enables the logs_backup_now command."
+commands.allow = ["logs_backup_now"]
+
+[[permission]]
+identifier = "allow-settings-get"
+description = "Enables the settings_get command."
+commands.allow = ["settings_get"]
+
+[[permission]]
+identifier = "allow-settings-set"
+description = "Enables the settings_set command."
+commands.allow = ["settings_set"]
+
+[[permission]]
+identifier = "allow-dialogs-choose-dir"
+description = "Enables the dialogs_choose_dir command."
+commands.allow = ["dialogs_choose_dir"]
+
+[[permission]]
+identifier = "allow-calendar-ics-dates"
+description = "Enables the calendar_ics_dates command."
+commands.allow = ["calendar_ics_dates"]
+
+[[permission]]
+identifier = "allow-notes-list"
+description = "Enables the notes_list command."
+commands.allow = ["notes_list"]
+
+[[permission]]
+identifier = "allow-notes-read"
+description = "Enables the notes_read command."
+commands.allow = ["notes_read"]
+
+[[permission]]
+identifier = "allow-notes-write"
+description = "Enables the notes_write command."
+commands.allow = ["notes_write"]
+
+[[permission]]
+identifier = "allow-whiteboard-list"
+description = "Enables the whiteboard_list command."
+commands.allow = ["whiteboard_list"]
+
+[[permission]]
+identifier = "allow-whiteboard-read"
+description = "Enables the whiteboard_read command."
+commands.allow = ["whiteboard_read"]
+
+[[permission]]
+identifier = "allow-whiteboard-write"
+description = "Enables the whiteboard_write command."
+commands.allow = ["whiteboard_write"]
+
+[[set]]
+identifier = "default"
+description = "Default permissions for all app commands."
+permissions = [
+  "allow-logs-today",
+  "allow-logs-list",
+  "allow-logs-read",
+  "allow-logs-write",
+  "allow-logs-search",
+  "allow-logs-export",
+  "allow-logs-open-dir",
+  "allow-logs-backup-now",
+  "allow-settings-get",
+  "allow-settings-set",
+  "allow-dialogs-choose-dir",
+  "allow-calendar-ics-dates",
+  "allow-notes-list",
+  "allow-notes-read",
+  "allow-notes-write",
+  "allow-whiteboard-list",
+  "allow-whiteboard-read",
+  "allow-whiteboard-write",
+]

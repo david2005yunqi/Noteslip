@@ -345,6 +345,120 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Default permissions for all app commands.\n#### This permission set includes:\n\n- `allow-logs-today`\n- `allow-logs-list`\n- `allow-logs-read`\n- `allow-logs-write`\n- `allow-logs-search`\n- `allow-logs-export`\n- `allow-logs-open-dir`\n- `allow-logs-backup-now`\n- `allow-settings-get`\n- `allow-settings-set`\n- `allow-dialogs-choose-dir`\n- `allow-calendar-ics-dates`\n- `allow-notes-list`\n- `allow-notes-read`\n- `allow-notes-write`\n- `allow-whiteboard-list`\n- `allow-whiteboard-read`\n- `allow-whiteboard-write`",
+          "type": "string",
+          "const": "default",
+          "markdownDescription": "Default permissions for all app commands.\n#### This permission set includes:\n\n- `allow-logs-today`\n- `allow-logs-list`\n- `allow-logs-read`\n- `allow-logs-write`\n- `allow-logs-search`\n- `allow-logs-export`\n- `allow-logs-open-dir`\n- `allow-logs-backup-now`\n- `allow-settings-get`\n- `allow-settings-set`\n- `allow-dialogs-choose-dir`\n- `allow-calendar-ics-dates`\n- `allow-notes-list`\n- `allow-notes-read`\n- `allow-notes-write`\n- `allow-whiteboard-list`\n- `allow-whiteboard-read`\n- `allow-whiteboard-write`"
+        },
+        {
+          "description": "Enables the calendar_ics_dates command.",
+          "type": "string",
+          "const": "allow-calendar-ics-dates",
+          "markdownDescription": "Enables the calendar_ics_dates command."
+        },
+        {
+          "description": "Enables the dialogs_choose_dir command.",
+          "type": "string",
+          "const": "allow-dialogs-choose-dir",
+          "markdownDescription": "Enables the dialogs_choose_dir command."
+        },
+        {
+          "description": "Enables the logs_backup_now command.",
+          "type": "string",
+          "const": "allow-logs-backup-now",
+          "markdownDescription": "Enables the logs_backup_now command."
+        },
+        {
+          "description": "Enables the logs_export command.",
+          "type": "string",
+          "const": "allow-logs-export",
+          "markdownDescription": "Enables the logs_export command."
+        },
+        {
+          "description": "Enables the logs_list command.",
+          "type": "string",
+          "const": "allow-logs-list",
+          "markdownDescription": "Enables the logs_list command."
+        },
+        {
+          "description": "Enables the logs_open_dir command.",
+          "type": "string",
+          "const": "allow-logs-open-dir",
+          "markdownDescription": "Enables the logs_open_dir command."
+        },
+        {
+          "description": "Enables the logs_read command.",
+          "type": "string",
+          "const": "allow-logs-read",
+          "markdownDescription": "Enables the logs_read command."
+        },
+        {
+          "description": "Enables the logs_search command.",
+          "type": "string",
+          "const": "allow-logs-search",
+          "markdownDescription": "Enables the logs_search command."
+        },
+        {
+          "description": "Enables the logs_today command.",
+          "type": "string",
+          "const": "allow-logs-today",
+          "markdownDescription": "Enables the logs_today command."
+        },
+        {
+          "description": "Enables the logs_write command.",
+          "type": "string",
+          "const": "allow-logs-write",
+          "markdownDescription": "Enables the logs_write command."
+        },
+        {
+          "description": "Enables the notes_list command.",
+          "type": "string",
+          "const": "allow-notes-list",
+          "markdownDescription": "Enables the notes_list command."
+        },
+        {
+          "description": "Enables the notes_read command.",
+          "type": "string",
+          "const": "allow-notes-read",
+          "markdownDescription": "Enables the notes_read command."
+        },
+        {
+          "description": "Enables the notes_write command.",
+          "type": "string",
+          "const": "allow-notes-write",
+          "markdownDescription": "Enables the notes_write command."
+        },
+        {
+          "description": "Enables the settings_get command.",
+          "type": "string",
+          "const": "allow-settings-get",
+          "markdownDescription": "Enables the settings_get command."
+        },
+        {
+          "description": "Enables the settings_set command.",
+          "type": "string",
+          "const": "allow-settings-set",
+          "markdownDescription": "Enables the settings_set command."
+        },
+        {
+          "description": "Enables the whiteboard_list command.",
+          "type": "string",
+          "const": "allow-whiteboard-list",
+          "markdownDescription": "Enables the whiteboard_list command."
+        },
+        {
+          "description": "Enables the whiteboard_read command.",
+          "type": "string",
+          "const": "allow-whiteboard-read",
+          "markdownDescription": "Enables the whiteboard_read command."
+        },
+        {
+          "description": "Enables the whiteboard_write command.",
+          "type": "string",
+          "const": "allow-whiteboard-write",
+          "markdownDescription": "Enables the whiteboard_write command."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",
