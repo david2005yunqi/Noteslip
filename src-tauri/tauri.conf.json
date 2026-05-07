@@ -27,6 +27,15 @@
     "active": true,
     "category": "Productivity",
     "icon": [],
-    "targets": "all"
+    "targets": ["deb", "appimage", "nsis", "msi"],
+    "windows": {
+      "nsis": {
+        "oneClick": false,
+        "perMachine": false,
+        "allowElevation": true,
+        "allowToChangeInstallationDirectory": true,
+        "languages": ["English", "ChineseSimplified"]
+      }
+    }
   }
 }

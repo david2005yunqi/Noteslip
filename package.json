@@ -6,7 +6,9 @@
     "start": "tauri dev",
     "dev": "tauri dev",
     "pack": "tauri build",
-    "dist": "tauri build"
+    "dist": "tauri build",
+    "build:portable": "tauri build --bundles appimage,nsis",
+    "build:all": "tauri build --bundles all"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

@@ -328,6 +328,20 @@ fn merge_partial(current: Settings, next: PartialSettings) -> Settings {
 }
 
 fn app_data_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    // Check for portable mode: if a "portable-data" folder or ".portable" marker file exists next to the exe
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let portable_dir = exe_dir.join("portable-data");
+            if portable_dir.exists() && portable_dir.is_dir() {
+                return Ok(portable_dir);
+            }
+            if exe_dir.join(".portable").exists() {
+                fs::create_dir_all(&portable_dir).map_err(|e| e.to_string())?;
+                return Ok(portable_dir);
+            }
+        }
+    }
+
     let dir = app.path().app_data_dir().unwrap_or_else(|_| {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))

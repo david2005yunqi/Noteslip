@@ -72,15 +72,24 @@ npm start
 
 ### 打包应用
 ```bash
-npm run dist
+npm install             # 安装依赖
+npm run dist            # 生成标准安装包 (deb/msi)
+npm run build:portable  # 生成免安装版 (AppImage/NSIS)
 ```
 产物将生成在 `src-tauri/target/release/bundle/` 下。
+
+### 免安装 (Portable) 模式
+Noteslip 支持在 Windows 和 Linux 上免安装使用：
+- **Linux**: 直接运行生成的 `.AppImage` 文件即可。
+- **Windows**: 
+  1. 运行 NSIS 生成的 `.exe` 安装程序（支持选择安装目录，可安装至 U 盘）。
+  2. **完全便携模式**: 在可执行文件（`.exe`）同级目录下创建一个名为 `portable-data` 的文件夹或一个名为 `.portable` 的空文件。此时，应用的所有数据和设置都将存储在该目录下，而不会写入系统应用数据文件夹。
 
 ---
 
 ## 数据存储
 
-默认情况下，Noteslip 会在系统的应用数据目录下创建以下结构：
+默认情况下，Noteslip 会在系统的应用数据目录下创建以下结构（除非开启了 [免安装模式](#免安装-portable-模式)）：
 - `daily-logs/`：存放每日日志文件。
 - `general-notes/`：存放通用 Markdown 笔记。
 - `whiteboards/`：存放白板数据。
