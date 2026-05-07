@@ -1,6 +1,6 @@
 # Noteslip
 
-Noteslip 是一款基于 Rust + Tauri 开发的本地笔记与日志工具。它融合了原有的每日日志管理功能以及从 Noteseye 合并而来的通用笔记与白板（Excalidraw）功能。
+Noteslip 是一款基于 Rust + Tauri v2 开发的本地笔记与日志工具。它融合了原有的每日日志管理功能以及从 Noteseye 合并而来的通用笔记与白板（Excalidraw）功能。
 
 ## 目录
 - [功能特性](#功能特性)
@@ -45,7 +45,9 @@ Noteslip 是一款基于 Rust + Tauri 开发的本地笔记与日志工具。它
 | **`src-tauri/`** | **Rust 后端核心目录**。包含 Tauri 配置、Rust 源代码及依赖声明。 |
 | ├── `src/main.rs` | 应用的入口逻辑。处理所有来自前端的指令（Invoke Commands），负责文件读写、搜索、设置管理等。 |
 | ├── `Cargo.toml` | Rust 项目的依赖管理文件。 |
-| └── `tauri.conf.json` | Tauri 配置文件。定义了窗口属性、权限控制（Allowlist）、构建命令等。 |
+| ├── `tauri.conf.json` | Tauri 配置文件。定义了窗口属性、构建命令等。 |
+| ├── `capabilities/` | Tauri v2 安全能力配置，定义窗口权限。 |
+| └── `permissions/` | (可选) 自定义命令的权限定义。 |
 | **`renderer/`** | **前端界面目录**。负责 UI 渲染与用户交互。 |
 | ├── `index.html` | 应用的主 HTML 结构。 |
 | ├── `renderer.js` | 前端逻辑核心。处理标签切换、调用 Rust 命令、更新 UI 状态及自动保存。 |

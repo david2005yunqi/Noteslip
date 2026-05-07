@@ -171,6 +171,14 @@ struct IcsSourceResponse {
     error: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+struct IcsResponse {
+    ok: bool,
+    dates: Vec<String>,
+    events: Vec<IcsEvent>,
+    sources: Vec<IcsSourceResponse>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct NoteWithMetadata {
     metadata: serde_json::Value,
@@ -194,7 +202,6 @@ fn parse_frontmatter(content: &str) -> (serde_json::Value, String) {
     }
     match end_idx {
         Some(idx) => {
-            let yaml_str = lines[1..idx].join("\n");
             // Basic YAML parsing (just key: value for now, or use a crate)
             // Since we want to avoid new crates if possible, let's do a simple one or use serde_json if it's actually JSON
             // Noteseye used a custom simple parser. I'll do something similar.

@@ -1,6 +1,6 @@
 (() => {
   if (window.noteslip || !window.__TAURI__) return;
-  const invoke = window.__TAURI__.tauri.invoke;
+  const invoke = window.__TAURI__.core ? window.__TAURI__.core.invoke : window.__TAURI__.tauri.invoke;
   const listen = window.__TAURI__.event.listen;
   window.noteslip = {
     getToday: () => invoke("logs_today"),

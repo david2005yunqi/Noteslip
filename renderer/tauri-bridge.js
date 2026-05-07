@@ -1,6 +1,6 @@
 (function () {
   const tauri = window.__TAURI__;
-  const invoke = tauri && tauri.tauri && tauri.tauri.invoke;
+  const invoke = tauri && (tauri.core ? tauri.core.invoke : (tauri.tauri && tauri.tauri.invoke));
   const listen = tauri && tauri.event && tauri.event.listen;
 
   if (!invoke || window.noteslip_whiteboard) return;

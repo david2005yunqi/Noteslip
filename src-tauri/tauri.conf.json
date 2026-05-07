@@ -15,7 +15,9 @@
     },
     "windows": [
       {
+        "label": "main",
         "title": "Noteslip",
+        "url": "index.html",
         "width": 1100,
         "height": 750
       }

@@ -8,6 +8,7 @@ releases/
 
 # Tauri
 src-tauri/target/
+src-tauri/gen/
 
 # OS Specific
 .DS_Store
@@ -16,6 +17,7 @@ Desktop.ini
 
 # Logs and debug
 *.log
+build_log_*.txt
 npm-debug.log*
 yarn-error.log*
 

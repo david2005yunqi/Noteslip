@@ -1,6 +1,6 @@
 {
   "name": "noteslip",
-  "version": "26.0.1",
+  "version": "26.0.2",
   "description": "Daily log app built with Rust and Tauri",
   "scripts": {
     "start": "tauri dev",
